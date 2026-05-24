@@ -82,6 +82,14 @@ let message = 'Hello world';
 alert(message);
 ${"`"}${"`"}${"`"}
 
+## Mermaid diagrams
+${"`"}${"`"}${"`"}mermaid
+graph TD
+  A[Start] --> B{Decision}
+  B -->|Yes| C[Finish]
+  B -->|No| D[Alternate]
+${"`"}${"`"}${"`"}
+
 ## Inline code
 
 This web site is using ${"`"}markedjs/marked${"`"}.
