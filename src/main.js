@@ -1,6 +1,6 @@
 import Storehouse from 'storehouse-js';
 import * as monaco from 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/+esm';
-import { marked } from 'marked';
+import { createProcessor, MarkdownIt } from 'mdy-docs';
 import DOMPurify from 'dompurify';
 import mermaid from 'mermaid';
 
@@ -92,7 +92,17 @@ ${"`"}${"`"}${"`"}
 
 ## Inline code
 
-This web site is using ${"`"}markedjs/marked${"`"}.
+This web site is using ${"`"}mdy-docs${"`"}.
+
+## Data and templates
+
+${"`"}${"`"}${"`"}data
+project:
+  name: Markdown Live Preview
+  stars: 3
+${"`"}${"`"}${"`"}
+
+**{{= project.name }}** has {{= project.stars }} star{{ if (project.stars !== 1) { }}s{{ } }}.
 `;
 
     self.MonacoEnvironment = {
@@ -158,20 +168,25 @@ This web site is using ${"`"}markedjs/marked${"`"}.
             .replace(/'/g, '&#39;');
     };
 
-    let createMarkedRenderer = () => {
-        const renderer = new marked.Renderer();
-        const renderCode = renderer.code.bind(renderer);
+    // Build an mdy-docs processor backed by a markdown-it instance that renders
+    // ```mermaid fences as <pre class="mermaid"> so they can be turned into
+    // diagrams after the html is inserted into the preview.
+    let createMdyProcessor = () => {
+        const md = new MarkdownIt({ html: true, linkify: true });
+        const defaultFence = md.renderer.rules.fence
+            ? md.renderer.rules.fence.bind(md.renderer.rules)
+            : (tokens, idx, options, env, self) => self.renderToken(tokens, idx, options);
 
-        renderer.code = (token) => {
-            const lang = (token.lang || '').match(/^\S*/)?.[0].toLowerCase();
-            if (lang !== 'mermaid') {
-                return renderCode(token);
+        md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+            const token = tokens[idx];
+            const lang = (token.info || '').match(/^\S*/)?.[0].toLowerCase();
+            if (lang === 'mermaid') {
+                return `<pre class="mermaid">${escapeHtml(token.content)}</pre>\n`;
             }
-
-            return `<pre class="mermaid">${escapeHtml(token.text)}</pre>\n`;
+            return defaultFence(tokens, idx, options, env, self);
         };
 
-        return renderer;
+        return createProcessor({ md });
     };
 
     let configureMermaid = (theme) => {
@@ -247,16 +262,16 @@ This web site is using ${"`"}markedjs/marked${"`"}.
         return renderMermaidDiagramsNow(theme);
     };
 
-    let renderer = createMarkedRenderer();
+    let mdyProcessor = createMdyProcessor();
 
-    // Render markdown text as html
+    // Render markdown (with mdy data fences + templates) as html
     let convert = (markdown) => {
-        let options = {
-            headerIds: false,
-            mangle: false,
-            renderer
-        };
-        let html = marked.parse(markdown, options);
+        let html;
+        try {
+            html = mdyProcessor.render(markdown);
+        } catch (error) {
+            html = `<pre class="mdy-error">${escapeHtml(String(error && error.message ? error.message : error))}</pre>`;
+        }
         let sanitized = DOMPurify.sanitize(html);
         document.querySelector('#output').innerHTML = sanitized;
         scheduleMermaidRender();

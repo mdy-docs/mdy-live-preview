@@ -21,4 +21,4 @@ $ make dev
 ```
 
 ## License
-See the [LICENSE](https://github.com/tanabe/markdown-live-preview/blob/master/LICENSE) file in this repo.
+See the [LICENSE](https://github.com/mdy-docs/mdy-live-preview/blob/master/LICENSE) file in this repo.
