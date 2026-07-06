@@ -3,6 +3,7 @@ import * as monaco from 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/+esm'
 import { createProcessor, MarkdownIt } from 'mdy-docs';
 import DOMPurify from 'dompurify';
 import mermaid from 'mermaid';
+import MarkdownItGitHubAlerts from 'markdown-it-github-alerts'
 
 const init = () => {
     let hasEdited = false;
@@ -173,6 +174,7 @@ ${"`"}${"`"}${"`"}
     // diagrams after the html is inserted into the preview.
     let createMdyProcessor = () => {
         const md = new MarkdownIt({ html: true, linkify: true });
+        md.use(MarkdownItGitHubAlerts, /* Options */);
         const defaultFence = md.renderer.rules.fence
             ? md.renderer.rules.fence.bind(md.renderer.rules)
             : (tokens, idx, options, env, self) => self.renderToken(tokens, idx, options);
